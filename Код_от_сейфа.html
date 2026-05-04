@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Сейф-головоломка — Полный показ пароля</title>
+    <style>
+        * {
+            user-select: none;
+            touch-action: manipulation;
+        }
+        body {
+            background: linear-gradient(145deg, #2c3e2f 0%, #1a2a1c 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', system-ui, monospace;
+            margin: 0;
+            padding: 20px;
+        }
+        .safe-container {
+            background: #4a5b4c;
+            padding: 25px 20px 30px;
+            border-radius: 60px 60px 40px 40px;
+            box-shadow: 0 20px 30px rgba(0,0,0,0.5), inset 0 1px 3px rgba(255,255,255,0.2);
+            max-width: 450px;
+            width: 100%;
+        }
+        .safe {
+            background: #2e2e2e;
+            border-radius: 45px;
+            padding: 20px;
+            box-shadow: inset 0 0 15px #00000055, 0 10px 10px rgba(0,0,0,0.3);
+        }
+        .safe-door {
+            background: radial-gradient(circle at 30% 35%, #b9b9b9, #6e6e6e);
+            border-radius: 35px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: inset 0 0 0 2px #eaeaea, inset 0 0 0 6px #4a4a4a;
+            transition: transform 0.3s ease;
+        }
+        .handle {
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, #c0c0c0, #7a7a7a);
+            border-radius: 50%;
+            margin: 5px auto 15px;
+            box-shadow: 0 5px 5px black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: #3a3a3a;
+        }
+        .code-screen {
+            background: #1f3b2c;
+            padding: 15px;
+            border-radius: 20px;
+            margin: 15px 10px;
+            color: #9bffb0;
+            font-size: 3rem;
+            letter-spacing: 12px;
+            font-weight: bold;
+            text-align: center;
+            font-family: monospace;
+            box-shadow: inset 0 0 8px black;
+        }
+        .revealed-password {
+            background: #0a1a0e;
+            border-radius: 30px;
+            padding: 6px 12px;
+            margin: 5px 10px 0 10px;
+            font-size: 0.9rem;
+            color: #ffcc88;
+            text-align: center;
+            font-family: monospace;
+            letter-spacing: 1px;
+            display: none;
+        }
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 20px;
+            padding: 10px;
+        }
+        .key {
+            background: #2d2f36;
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            padding: 15px 0;
+            text-align: center;
+            border-radius: 50px;
+            box-shadow: 0 5px 0 #121212;
+            transition: 0.05s linear;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .key:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #121212;
+        }
+        .action-btn {
+            background: #4f6d5c;
+            font-size: 1rem;
+        }
+        .clear-btn {
+            background: #8b5a2b;
+        }
+        .help-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .help-btn {
+            background: #3a6b8f;
+            padding: 10px 16px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            text-align: center;
+            flex: 1;
+            min-width: 100px;
+            box-shadow: 0 3px 0 #1a3a4a;
+            cursor: pointer;
+            transition: 0.05s linear;
+            color: white;
+        }
+        .help-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #1a3a4a;
+        }
+        .newgame-btn {
+            background: #6f9e3f;
+            margin-top: 5px;
+            box-shadow: 0 3px 0 #3a5a1a;
+        }
+        .message {
+            background: #000000aa;
+            backdrop-filter: blur(4px);
+            margin-top: 20px;
+            padding: 8px;
+            border-radius: 40px;
+            font-size: 1rem;
+            font-weight: bold;
+            text-align: center;
+            color: #ffd966;
+        }
+        footer {
+            font-size: 12px;
+            text-align: center;
+            margin-top: 15px;
+            color: #d4d4b0;
+        }
+    </style>
+</head>
+<body>
+<div class="safe-container">
+    <div class="safe">
+        <div class="safe-door">
+            <div class="handle">⚙️</div>
+            <div class="code-screen" id="codeDisplay"></div>
+            <div class="revealed-password" id="revealedPassword"></div>
+            <div class="keypad" id="keypad"></div>
+            
+            <div class="help-buttons" id="helpButtons">
+                <div class="help-btn" id="hint1">🔍 +1 цифра</div>
+                <div class="help-btn" id="hint2">🔓 +2 цифры</div>
+                <div class="help-btn" id="hintFull">⭐ Разгадать всё</div>
+            </div>
+            
+            <div class="help-buttons">
+                <div class="help-btn newgame-btn" id="newGameBtn">🔄 НОВЫЙ ПАРОЛЬ</div>
+            </div>
+            
+            <div class="message" id="message">🔐 ВВЕДИТЕ КОД</div>
+        </div>
+    </div>
+    <footer>💡 Подсказки сами заполняют цифры | При «Разгадать всё» показывается полный пароль</footer>
+</div>
+
+<script>
+    // ============================================
+    // ИГРОВЫЕ ПЕРЕМЕННЫЕ
+    // ============================================
+    let SECRET_CODE = "";
+    const MAX_LENGTH = 4;
+    
+    let revealedPositions = [false, false, false, false];
+    let userDigits = ["", "", "", ""];
+    let isOpened = false;
+    
+    const codeDisplay = document.getElementById('codeDisplay');
+    const revealedPasswordDiv = document.getElementById('revealedPassword');
+    const messageDiv = document.getElementById('message');
+    const hint1Btn = document.getElementById('hint1');
+    const hint2Btn = document.getElementById('hint2');
+    const hintFullBtn = document.getElementById('hintFull');
+    const newGameBtn = document.getElementById('newGameBtn');
+    
+    // ========== ЗВУКИ ==========
+    function playSound(type) {
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const now = audioCtx.currentTime;
+            
+            if (type === 'press') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.frequency.value = 880;
+                gain.gain.value = 0.12;
+                osc.start();
+                gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.1);
+                osc.stop(now + 0.1);
+                setTimeout(() => audioCtx.close(), 200);
+            }
+            else if (type === 'error') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = 'sawtooth';
+                osc.frequency.value = 180;
+                gain.gain.value = 0.2;
+                osc.start();
+                gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.45);
+                osc.stop(now + 0.45);
+                setTimeout(() => audioCtx.close(), 500);
+            }
+            else if (type === 'win') {
+                const osc1 = audioCtx.createOscillator();
+                const gain1 = audioCtx.createGain();
+                osc1.connect(gain1);
+                gain1.connect(audioCtx.destination);
+                osc1.frequency.value = 523.25;
+                gain1.gain.value = 0.15;
+                osc1.start();
+                osc1.stop(now + 0.25);
+                
+                const osc2 = audioCtx.createOscillator();
+                const gain2 = audioCtx.createGain();
+                osc2.connect(gain2);
+                gain2.connect(audioCtx.destination);
+                osc2.frequency.value = 659.25;
+                gain2.gain.value = 0.15;
+                osc2.start(now + 0.2);
+                osc2.stop(now + 0.45);
+                
+                const osc3 = audioCtx.createOscillator();
+                const gain3 = audioCtx.createGain();
+                osc3.connect(gain3);
+                gain3.connect(audioCtx.destination);
+                osc3.frequency.value = 783.99;
+                gain3.gain.value = 0.18;
+                osc3.start(now + 0.4);
+                osc3.stop(now + 0.7);
+                
+                const bufferSize = 4096;
+                const noiseNode = audioCtx.createScriptProcessor(bufferSize, 1, 1);
+                noiseNode.onaudioprocess = function(e) {
+                    const output = e.outputBuffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        output[i] = (Math.random() * 2 - 1) * 0.25;
+                    }
+                };
+                const noiseGain = audioCtx.createGain();
+                noiseNode.connect(noiseGain);
+                noiseGain.connect(audioCtx.destination);
+                noiseGain.gain.setValueAtTime(0, now);
+                noiseGain.gain.linearRampToValueAtTime(0.25, now + 0.1);
+                noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+                noiseNode.start(now);
+                noiseNode.stop(now + 1.2);
+                
+                setTimeout(() => {
+                    try { audioCtx.close(); } catch(e) {}
+                }, 1300);
+            }
+            else if (type === 'hint') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.frequency.value = 392.00;
+                gain.gain.value = 0.1;
+                osc.start();
+                gain.gain.exponentialRampToValueAtTime(0.00001, now + 0.25);
+                osc.stop(now + 0.25);
+                setTimeout(() => audioCtx.close(), 300);
+            }
+        } catch(e) { console.log("Звук не поддерживается"); }
+    }
+    
+    // ========== ГЕНЕРАЦИЯ СЛУЧАЙНОГО ПАРОЛЯ ==========
+    function generateRandomCode() {
+        let code = "";
+        for (let i = 0; i < MAX_LENGTH; i++) {
+            code += Math.floor(Math.random() * 10);
+        }
+        return code;
+    }
+    
+    // ========== ОБНОВЛЕНИЕ ДИСПЛЕЯ ==========
+    function updateDisplay() {
+        if (isOpened) {
+            codeDisplay.innerText = "OPEN";
+            // Показываем правильный пароль под OPEN
+            revealedPasswordDiv.style.display = "block";
+            revealedPasswordDiv.innerText = `🔓 Пароль: ${SECRET_CODE}`;
+            return;
+        } else {
+            revealedPasswordDiv.style.display = "none";
+        }
+        
+        let displayText = "";
+        for (let i = 0; i < MAX_LENGTH; i++) {
+            if (revealedPositions[i]) {
+                displayText += SECRET_CODE[i];
+            } else if (userDigits[i] !== "") {
+                displayText += userDigits[i];
+            } else {
+                displayText += "•";
+            }
+        }
+        codeDisplay.innerText = displayText;
+    }
+    
+    function isCodeComplete() {
+        for (let i = 0; i < MAX_LENGTH; i++) {
+            if (!revealedPositions[i] && userDigits[i] === "") {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    function getFullEnteredCode() {
+        let full = "";
+        for (let i = 0; i < MAX_LENGTH; i++) {
+            if (revealedPositions[i]) {
+                full += SECRET_CODE[i];
+            } else {
+                full += userDigits[i];
+            }
+        }
+        return full;
+    }
+    
+    function checkCode() {
+        const fullCode = getFullEnteredCode();
+        if (fullCode === SECRET_CODE) {
+            openSafe();
+        } else if (isCodeComplete()) {
+            playSound('error');
+            showMessage("❌ НЕВЕРНЫЙ КОД! ПОПРОБУЙ СНОВА ❌", true);
+            for (let i = 0; i < MAX_LENGTH; i++) {
+                if (!revealedPositions[i]) {
+                    userDigits[i] = "";
+                }
+            }
+            updateDisplay();
+            
+            const screen = document.querySelector('.code-screen');
+            screen.style.transform = "translateX(4px)";
+            setTimeout(() => screen.style.transform = "", 100);
+            setTimeout(() => screen.style.transform = "translateX(-4px)", 150);
+            setTimeout(() => screen.style.transform = "", 250);
+        }
+    }
+    
+    function openSafe() {
+        isOpened = true;
+        playSound('win');
+        showMessage("🎉 СЕЙФ ОТКРЫТ! Нажмите «НОВЫЙ ПАРОЛЬ» для следующей игры 🎉");
+        messageDiv.style.background = "#1f5a2eaa";
+        document.querySelector('.safe-door').style.transform = "rotateY(15deg)";
+        updateDisplay();
+        disableButtons(true);
+    }
+    
+    function pressDigit(digit) {
+        if (isOpened) return;
+        
+        let firstEmpty = -1;
+        for (let i = 0; i < MAX_LENGTH; i++) {
+            if (!revealedPositions[i] && userDigits[i] === "") {
+                firstEmpty = i;
+                break;
+            }
+        }
+        
+        if (firstEmpty === -1) {
+            if (isCodeComplete()) {
+                checkCode();
+            }
+            return;
+        }
+        
+        playSound('press');
+        userDigits[firstEmpty] = digit;
+        updateDisplay();
+        
+        if (isCodeComplete()) {
+            checkCode();
+        }
+    }
+    
+    function clearCode() {
+        if (isOpened) return;
+        
+        let hadInput = false;
+        for (let i = 0; i < MAX_LENGTH; i++) {
+            if (!revealedPositions[i] && userDigits[i] !== "") {
+                userDigits[i] = "";
+                hadInput = true;
+            }
+        }
+        if (hadInput) playSound('press');
+        updateDisplay();
+        showMessage("🔓 ВВОД СБРОШЕН. ВВЕДИТЕ ОСТАВШИЕСЯ ЦИФРЫ");
+        messageDiv.style.background = "#000000aa";
+    }
+    
+    // ========== ПОДСКАЗКИ ==========
+    function findNextHiddenPosition() {
+        for (let i = 0; i < MAX_LENGTH; i++) {
+            if (!revealedPositions[i]) return i;
+        }
+        return -1;
+    }
+    
+    function applyHint1() {
+        if (isOpened) { showMessage("Сейф уже открыт! Начните новую игру", true); return; }
+        
+        const nextPos = findNextHiddenPosition();
+        if (nextPos === -1) {
+            showMessage("Все цифры уже раскрыты! Введите оставшиеся", false);
+            return;
+        }
+        
+        playSound('hint');
+        revealedPositions[nextPos] = true;
+        if (userDigits[nextPos] !== "") userDigits[nextPos] = "";
+        updateDisplay();
+        
+        const revealedDigit = SECRET_CODE[nextPos];
+        showMessage(`💡 Подсказка: цифра №${nextPos+1} — ${revealedDigit}`, false, true);
+        
+        if (revealedPositions.every(v => v === true)) {
+            openSafe();
+        }
+    }
+    
+    function applyHint2() {
+        if (isOpened) { showMessage("Сейф уже открыт! Начните новую игру", true); return; }
+        
+        let openedCount = 0;
+        let openedDigits = [];
+        
+        for (let i = 0; i < MAX_LENGTH && openedCount < 2; i++) {
+            if (!revealedPositions[i]) {
+                revealedPositions[i] = true;
+                if (userDigits[i] !== "") userDigits[i] = "";
+                openedCount++;
+                openedDigits.push(`цифра ${i+1} — ${SECRET_CODE[i]}`);
+            }
+        }
+        
+        if (openedCount === 0) {
+            showMessage("Все цифры уже открыты! Введите оставшиеся", false);
+            return;
+        }
+        
+        playSound('hint');
+        if (openedCount === 1) {
+            showMessage(`💡 Подсказка: открыта ${openedDigits[0]}`, false, true);
+        } else {
+            showMessage(`💡 Подсказка: открыты ${openedDigits.join(" и ")}`, false, true);
+        }
+        updateDisplay();
+        
+        if (revealedPositions.every(v => v === true)) {
+            openSafe();
+        }
+    }
+    
+    function applyHintFull() {
+        if (isOpened) { showMessage("Сейф уже открыт! Начните новую игру", true); return; }
+        
+        let openedList = [];
+        for (let i = 0; i < MAX_LENGTH; i++) {
+            if (!revealedPositions[i]) {
+                revealedPositions[i] = true;
+                if (userDigits[i] !== "") userDigits[i] = "";
+                openedList.push(`${SECRET_CODE[i]}`);
+            }
+        }
+        
+        playSound('hint');
+        // Показываем полный пароль в сообщении
+        showMessage(`⭐ ПОЛНЫЙ ПАРОЛЬ: ${SECRET_CODE}`, false, true);
+        updateDisplay();
+        
+        // Открываем сейф автоматически
+        openSafe();
+    }
+    
+    function showMessage(text, isError = false, isHint = false) {
+        messageDiv.innerText = text;
+        if(isHint) messageDiv.style.color = "#aaffdd";
+        else messageDiv.style.color = isError ? "#ffaa88" : "#c3ff9e";
+        if(isError) {
+            setTimeout(() => {
+                if(messageDiv.innerText === text) 
+                    messageDiv.style.color = "#ffd966";
+            }, 1200);
+        } else if(!isHint) {
+            setTimeout(() => {
+                if(messageDiv.innerText === text && !isOpened)
+                    messageDiv.style.color = "#ffd966";
+            }, 2000);
+        }
+    }
+    
+    function disableButtons(disabled) {
+        const allKeys = document.querySelectorAll('.key:not(.clear-btn):not(.action-btn)');
+        allKeys.forEach(btn => {
+            btn.style.pointerEvents = disabled ? "none" : "auto";
+            btn.style.opacity = disabled ? "0.5" : "1";
+        });
+        hint1Btn.style.pointerEvents = disabled ? "none" : "auto";
+        hint2Btn.style.pointerEvents = disabled ? "none" : "auto";
+        hintFullBtn.style.pointerEvents = disabled ? "none" : "auto";
+        if(disabled) {
+            hint1Btn.style.opacity = "0.5";
+            hint2Btn.style.opacity = "0.5";
+            hintFullBtn.style.opacity = "0.5";
+        } else {
+            hint1Btn.style.opacity = "1";
+            hint2Btn.style.opacity = "1";
+            hintFullBtn.style.opacity = "1";
+        }
+    }
+    
+    function enableAllButtons() {
+        const allKeys = document.querySelectorAll('.key:not(.clear-btn):not(.action-btn)');
+        allKeys.forEach(btn => {
+            btn.style.pointerEvents = "auto";
+            btn.style.opacity = "1";
+        });
+        hint1Btn.style.pointerEvents = "auto";
+        hint2Btn.style.pointerEvents = "auto";
+        hintFullBtn.style.pointerEvents = "auto";
+        hint1Btn.style.opacity = "1";
+        hint2Btn.style.opacity = "1";
+        hintFullBtn.style.opacity = "1";
+    }
+    
+    function resetGame() {
+        SECRET_CODE = generateRandomCode();
+        revealedPositions = [false, false, false, false];
+        userDigits = ["", "", "", ""];
+        isOpened = false;
+        
+        enableAllButtons();
+        updateDisplay();
+        showMessage(`🔐 НОВЫЙ СЕЙФ! Угадайте код из 4 цифр`, false);
+        messageDiv.style.background = "#000000aa";
+        document.querySelector('.safe-door').style.transform = "";
+        
+        console.log("Новый секретный код:", SECRET_CODE);
+    }
+    
+    // ========== КЛАВИАТУРА ==========
+    function buildKeypad() {
+        const keypadDiv = document.getElementById('keypad');
+        keypadDiv.innerHTML = "";
+        
+        ['1','2','3'].forEach(d => {
+            const btn = document.createElement('div');
+            btn.className = 'key';
+            btn.innerText = d;
+            btn.addEventListener('click', () => pressDigit(d));
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); pressDigit(d); });
+            keypadDiv.appendChild(btn);
+        });
+        
+        ['4','5','6'].forEach(d => {
+            const btn = document.createElement('div');
+            btn.className = 'key';
+            btn.innerText = d;
+            btn.addEventListener('click', () => pressDigit(d));
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); pressDigit(d); });
+            keypadDiv.appendChild(btn);
+        });
+        
+        ['7','8','9'].forEach(d => {
+            const btn = document.createElement('div');
+            btn.className = 'key';
+            btn.innerText = d;
+            btn.addEventListener('click', () => pressDigit(d));
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); pressDigit(d); });
+            keypadDiv.appendChild(btn);
+        });
+        
+        const emptyLeft = document.createElement('div');
+        emptyLeft.style.visibility = 'hidden';
+        emptyLeft.className = 'key';
+        keypadDiv.appendChild(emptyLeft);
+        
+        const zeroBtn = document.createElement('div');
+        zeroBtn.className = 'key';
+        zeroBtn.innerText = '0';
+        zeroBtn.addEventListener('click', () => pressDigit('0'));
+        zeroBtn.addEventListener('touchstart', (e) => { e.preventDefault(); pressDigit('0'); });
+        keypadDiv.appendChild(zeroBtn);
+        
+        const clearBtn = document.createElement('div');
+        clearBtn.className = 'key action-btn clear-btn';
+        clearBtn.innerText = '🗑️ СБРОС';
+        clearBtn.addEventListener('click', clearCode);
+        clearBtn.addEventListener('touchstart', (e) => { e.preventDefault(); clearCode(); });
+        keypadDiv.appendChild(clearBtn);
+    }
+    
+    function init() {
+        buildKeypad();
+        
+        hint1Btn.addEventListener('click', applyHint1);
+        hint2Btn.addEventListener('click', applyHint2);
+        hintFullBtn.addEventListener('click', applyHintFull);
+        hint1Btn.addEventListener('touchstart', (e) => { e.preventDefault(); applyHint1(); });
+        hint2Btn.addEventListener('touchstart', (e) => { e.preventDefault(); applyHint2(); });
+        hintFullBtn.addEventListener('touchstart', (e) => { e.preventDefault(); applyHintFull(); });
+        
+        newGameBtn.addEventListener('click', resetGame);
+        newGameBtn.addEventListener('touchstart', (e) => { e.preventDefault(); resetGame(); });
+        
+        resetGame();
+    }
+    
+    init();
+</script>
+</body>
+</html>
